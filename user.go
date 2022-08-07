@@ -54,8 +54,26 @@ func (user *User) offline() {
 	user.handleMessage("is offline")
 }
 
+func (user *User) sendMsg(msg string) {
+	_, err := user.conn.Write([]byte(msg))
+	if err != nil {
+		fmt.Println("send message err: ", err)
+		return
+	}
+}
+
 // user handles message
 func (user *User) handleMessage(msg string) {
+	// query all online users
+	if msg == "who" {
+		user.server.MapLock.Lock()
+		for _, u := range user.server.OnlineMap {
+			onlineMsg := fmt.Sprintf("[%s]%s is online\n", u.Addr, u.Name)
+			user.sendMsg(onlineMsg)
+		}
+		user.server.MapLock.Unlock()
+		return
+	}
 	sendMsg := fmt.Sprintf("[%s]%s %s", user.Addr, user.Name, msg)
 
 	user.server.Message <- sendMsg
