@@ -56,7 +56,7 @@ func (user *User) offline() {
 }
 
 func (user *User) sendMsg(msg string) {
-	_, err := user.conn.Write([]byte(msg))
+	_, err := user.conn.Write([]byte(msg + "\n"))
 	if err != nil {
 		fmt.Println("send message err: ", err)
 		return
@@ -91,7 +91,21 @@ func (user *User) handleMessage(msg string) {
 		user.sendMsg("username changed successfully")
 
 		return
-
+	}
+	if strings.HasPrefix(msg, "to ") {
+		sp := strings.SplitN(msg, " ", 3)
+		if len(sp) != 3 {
+			user.sendMsg("wrong input")
+			return
+		}
+		remoteName := sp[1]
+		remoteUser, ok := user.server.OnlineMap[remoteName]
+		if !ok {
+			user.sendMsg("the user does not exist")
+			return
+		}
+		remoteUser.sendMsg(user.Name + " : " + sp[2])
+		return
 	}
 	sendMsg := fmt.Sprintf("[%s]%s %s", user.Addr, user.Name, msg)
 
