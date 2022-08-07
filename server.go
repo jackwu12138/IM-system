@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"sync"
+	"time"
 )
 
 type Server struct {
@@ -41,6 +42,8 @@ func (s *Server) handler(conn net.Conn) {
 
 	user := NewUser(conn, s)
 	user.online()
+	isLive := make(chan bool)
+
 	// Receive messages from users
 	go func() {
 		buf := make([]byte, 4096)
@@ -58,10 +61,28 @@ func (s *Server) handler(conn net.Conn) {
 			msg := string(buf[:n-1])
 			// handle message
 			user.handleMessage(msg)
+			isLive <- true
 		}
 	}()
 
-	select {}
+	for {
+		select {
+
+		case <-isLive:
+			// The current user is active and the timer should be reset
+		case <-time.After(time.Minute * 10):
+			// user is time out, kick out the user
+			user.sendMsg("you got kicked out")
+
+			close(user.C)
+			err := conn.Close()
+			if err != nil {
+				fmt.Println("close connection err: ", err)
+				return
+			}
+			return
+		}
+	}
 }
 
 func (s *Server) start() {
