@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"strings"
 )
 
 type User struct {
@@ -73,6 +74,24 @@ func (user *User) handleMessage(msg string) {
 		}
 		user.server.MapLock.Unlock()
 		return
+	}
+	if strings.HasPrefix(msg, "rename ") {
+		newName := msg[7:]
+		_, ok := user.server.OnlineMap[newName]
+		if ok {
+			user.sendMsg("username [" + newName + "] is already in use")
+			return
+		}
+		user.server.MapLock.Lock()
+		delete(user.server.OnlineMap, user.Name)
+		user.server.OnlineMap[newName] = user
+		user.server.MapLock.Unlock()
+
+		user.Name = newName
+		user.sendMsg("username changed successfully")
+
+		return
+
 	}
 	sendMsg := fmt.Sprintf("[%s]%s %s", user.Addr, user.Name, msg)
 
