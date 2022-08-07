@@ -36,31 +36,18 @@ func (s *Server) ListenMessage() {
 	}
 }
 
-func (s *Server) BroadCast(user *User, msg string) {
-	sendMsg := fmt.Sprintf("[%s]%s %s", user.Addr, user.Name, msg)
-
-	s.Message <- sendMsg
-}
-
 func (s *Server) handler(conn net.Conn) {
 	fmt.Println("Connection established successfully")
 
-	user := NewUser(conn)
-
-	// The user is online, add the user to the OnlineMap
-	s.MapLock.Lock()
-	s.OnlineMap[user.Name] = user
-	s.MapLock.Unlock()
-
-	// Broadcast the message that the user is online
-	s.BroadCast(user, "is online")
+	user := NewUser(conn, s)
+	user.online()
 	// Receive messages from users
 	go func() {
 		buf := make([]byte, 4096)
 		for {
 			n, err := conn.Read(buf)
 			if n == 0 {
-				s.BroadCast(user, " is leaved")
+				user.offline()
 				return
 			}
 			if err != nil && err != io.EOF {
@@ -69,8 +56,8 @@ func (s *Server) handler(conn net.Conn) {
 			}
 			// Get messages sent by users
 			msg := string(buf[:n-1])
-			// broadcast the message
-			s.BroadCast(user, msg)
+			// handle message
+			user.handleMessage(msg)
 		}
 	}()
 
