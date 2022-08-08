@@ -85,7 +85,7 @@ func (s *Server) handler(conn net.Conn) {
 	}
 }
 
-func (s *Server) start() {
+func (s *Server) Start() {
 	fmt.Println("server start")
 	// socket listen
 	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", s.IP, s.Post))
